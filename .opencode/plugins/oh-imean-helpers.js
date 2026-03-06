@@ -7,6 +7,8 @@ const __dirname = path.dirname(__filename)
 const pluginRoot = path.resolve(__dirname, "../..")
 const CLAUDE_PLUGIN_ROOT_VAR = "${CLAUDE_PLUGIN_ROOT}"
 const SKILLS_SOURCE_PATH = path.join(pluginRoot, "skills")
+const RUNTIME_TASKS_DIR = ".oh-imean/runtime/tasks"
+const SPECS_DIR = ".oh-imean/specs"
 
 const TOOL_NAME_MAP = {
   edit: "Edit",
@@ -57,6 +59,7 @@ const buildInjectedAgents = () => ({
       question: true,
       write: false,
       edit: false,
+      mcp: true,
     },
   },
   "oh-imean-spec-planner": {
@@ -69,6 +72,7 @@ const buildInjectedAgents = () => ({
       question: true,
       write: true,
       edit: true,
+      mcp: true,
     },
   },
   "oh-imean-implementer": {
@@ -81,6 +85,7 @@ const buildInjectedAgents = () => ({
       question: true,
       write: true,
       edit: true,
+      mcp: true,
     },
   },
   "oh-imean-reviewer": {
@@ -92,6 +97,7 @@ const buildInjectedAgents = () => ({
       bash: true,
       write: true,
       edit: false,
+      mcp: true,
     },
   },
   "oh-imean-verifier": {
@@ -103,6 +109,7 @@ const buildInjectedAgents = () => ({
       bash: true,
       write: true,
       edit: false,
+      mcp: true,
     },
   },
 })
@@ -118,6 +125,7 @@ const buildPrimaryAgents = () => ({
       question: true,
       write: true,
       edit: true,
+      mcp: true,
     },
   },
 })
@@ -173,9 +181,49 @@ const buildInjectedCommands = () => ({
   },
 })
 
+const getLatestTaskPhase = () => {
+  try {
+    const specsRoot = path.join(process.cwd(), SPECS_DIR)
+    if (!fs.existsSync(specsRoot)) return null
+
+    const taskDirs = fs
+      .readdirSync(specsRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+
+    let latestTask = null
+    let latestTime = 0
+
+    for (const taskSlug of taskDirs) {
+      const statePath = path.join(specsRoot, taskSlug, "state.json")
+      if (fs.existsSync(statePath)) {
+        const stat = fs.statSync(statePath)
+        if (stat.mtimeMs > latestTime) {
+          latestTime = stat.mtimeMs
+          const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+          latestTask = state
+        }
+      }
+    }
+
+    if (!latestTask) return null
+    if (["done"].includes(latestTask.phase)) return null
+    if (["active", "waiting_user", "blocked"].includes(latestTask.status)) {
+      return latestTask.phase
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 const buildInjectedMcpServers = () => {
   const rawConfig = JSON.parse(readText(".mcp.json"))
   const rawServers = rawConfig?.mcpServers
+  const currentPhase = getLatestTaskPhase()
+
+  // Define research-heavy MCPs that should be disabled during pure implementation
+  const RESEARCH_MCPS = ["websearch", "context7"]
 
   if (!rawServers || typeof rawServers !== "object") {
     return {}
@@ -189,7 +237,12 @@ const buildInjectedMcpServers = () => {
 
       const server = resolvePluginPaths(rawServer)
       const serverType = server.type || "stdio"
-      const enabled = server.disabled !== true
+      let enabled = server.disabled !== true
+
+      // Disable research tools if we are actively implementing code
+      if (enabled && RESEARCH_MCPS.includes(name) && currentPhase === "implement") {
+        enabled = false
+      }
 
       if (serverType === "http" || serverType === "sse") {
         if (typeof server.url !== "string" || !server.url.trim()) {
