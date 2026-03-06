@@ -17,66 +17,20 @@ OpenCode iMean is a local-first workflow plugin scaffold for OpenCode, oh-my-ope
 - `scripts/hooks/` lifecycle hooks and quality gate scripts
 - `.mcp.json` plugin MCP config (disabled template)
 
-## Bundled Local Skills
+## Included Skills
 
-`OpenCode iMean` includes a project-local skill set under `skills/` for compatible loaders and local reuse.
+This repository only tracks skills that are self-contained inside `skills/`.
+
+Current checked-in skills:
+
+- `frontend-ui-ux`
+- `git-master`
+- `playwright`
+- `repo-guard`
 
 The current native OpenCode wrapper does not auto-inject `skills/` into `config.skills`. If you want these skills in native OpenCode, wire them in explicitly from your own project setup or keep using a compatible loader that already understands this directory.
 
-### Daily Engineering
-
-- `brainstorming`
-- `systematic-debugging`
-- `test-driven-development`
-- `test-fixing`
-- `lint-and-validate`
-- `verification-before-completion`
-- `clean-code`
-- `software-architecture`
-- `using-git-worktrees`
-- `git-advanced-workflows`
-
-### Python
-
-- `python-pro`
-- `fastapi-pro`
-- `python-testing-patterns`
-- `api-patterns`
-- `database-design`
-
-### TypeScript / React
-
-- `typescript-expert`
-- `react-patterns`
-- `frontend-dev-guidelines`
-- `vercel-react-best-practices`
-
-### Imported From `oh-my-opencode`
-
-- `git-master`
-- `frontend-ui-ux`
-- `playwright`
-
-### Existing Project Guard
-
-- `repo-guard`
-
-### Usage
-
-Ask for skills explicitly in prompts when you want the agent to load them for work in this repository.
-
-Examples:
-
-```text
-Use brainstorming to plan this feature.
-Use python-pro and fastapi-pro to refactor this endpoint.
-Use typescript-expert and react-patterns to fix this component.
-Use systematic-debugging before changing code.
-Use lint-and-validate and verification-before-completion before wrapping up.
-Use git-master before commit or rebase work.
-Use frontend-ui-ux when refining interface quality.
-Use playwright for browser verification and screenshots.
-```
+If you use a larger private/community skill pack locally, keep those skills outside this repository instead of committing machine-specific symlinks.
 
 ## Bundled MCPs
 
@@ -176,6 +130,7 @@ The bundled MCP definitions are optional. Configure credentials locally before e
 - 同一任务后续只更新原文件，不重复新建
 - `quick-fix` 也创建任务目录，但不生成 `requirements.md` / `plan.md`
 - 只有在明确开启新任务时，才创建新的 `task-slug` 目录
+- `.oh-imean/` 属于运行时生成目录，不纳入版本控制
 
 ## Runtime Artifacts
 
